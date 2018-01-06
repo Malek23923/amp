@@ -573,6 +573,13 @@ abstract class Driver {
     }
 
     /**
+     * Get the current loop time in milliseconds.
+     *
+     * @return int
+     */
+    abstract public function now(): int;
+
+    /**
      * Get the underlying loop handle.
      *
      * Example: the `uv_loop` resource for `libuv` or the `EvLoop` object for `libev` or `null` for a native driver.

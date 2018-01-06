@@ -163,6 +163,13 @@ class UvDriver extends Driver {
     /**
      * {@inheritdoc}
      */
+    public function now(): int {
+        return \uv_now($this->handle);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getHandle() {
         return $this->handle;
     }

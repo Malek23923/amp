@@ -10,18 +10,28 @@ use function Amp\Promise\rethrow;
 class EventDriver extends Driver {
     /** @var \Event[]|null */
     private static $activeSignals;
+
     /** @var \EventBase */
     private $handle;
+
     /** @var \Event[] */
     private $events = [];
+
     /** @var callable */
     private $ioCallback;
+
     /** @var callable */
     private $timerCallback;
+
     /** @var callable */
     private $signalCallback;
+
     /** @var \Event[] */
     private $signals = [];
+
+    /** @var bool */
+    private $nowUpdateNeeded = false;
+
     /** @var int Internal timestamp for now. */
     private $now;
 
@@ -171,6 +181,18 @@ class EventDriver extends Driver {
     /**
      * {@inheritdoc}
      */
+    public function now(): int {
+        if ($this->nowUpdateNeeded) {
+            $this->now = (int) (\microtime(true) * self::MILLISEC_PER_SEC);
+            $this->nowUpdateNeeded = false;
+        }
+
+        return $this->now;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getHandle(): \EventBase {
         return $this->handle;
     }
@@ -179,8 +201,8 @@ class EventDriver extends Driver {
      * {@inheritdoc}
      */
     protected function dispatch(bool $blocking) {
+        $this->nowUpdateNeeded = true;
         $this->handle->loop($blocking ? \EventBase::LOOP_ONCE : \EventBase::LOOP_ONCE | \EventBase::LOOP_NONBLOCK);
-        $this->now = (int) (\microtime(true) * self::MILLISEC_PER_SEC);
     }
 
     /**
@@ -188,6 +210,11 @@ class EventDriver extends Driver {
      */
     protected function activate(array $watchers) {
         $now = (int) (\microtime(true) * self::MILLISEC_PER_SEC);
+
+        if ($this->nowUpdateNeeded) {
+            $this->now = $now;
+            $this->nowUpdateNeeded = false;
+        }
 
         foreach ($watchers as $watcher) {
             if (!isset($this->events[$id = $watcher->id])) {

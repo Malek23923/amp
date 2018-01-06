@@ -29,6 +29,9 @@ class NativeDriver extends Driver {
     /** @var \Amp\Loop\Watcher[][] */
     private $signalWatchers = [];
 
+    /** @var bool */
+    private $nowUpdateNeeded = false;
+
     /** @var int Internal timestamp for now. */
     private $now;
 
@@ -57,11 +60,25 @@ class NativeDriver extends Driver {
     /**
      * {@inheritdoc}
      */
+    public function now(): int {
+        if ($this->nowUpdateNeeded) {
+            $this->now = (int) (\microtime(true) * self::MILLISEC_PER_SEC);
+            $this->nowUpdateNeeded = false;
+        }
+
+        return $this->now;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getHandle() {
         return null;
     }
 
     protected function dispatch(bool $blocking) {
+        $this->nowUpdateNeeded = true;
+
         $this->selectStreams(
             $this->readStreams,
             $this->writeStreams,
@@ -257,7 +274,10 @@ class NativeDriver extends Driver {
      * {@inheritdoc}
      */
     protected function activate(array $watchers) {
-        $now = (int) (\microtime(true) * self::MILLISEC_PER_SEC);
+        if ($this->nowUpdateNeeded) {
+            $this->now = (int) (\microtime(true) * self::MILLISEC_PER_SEC);
+            $this->nowUpdateNeeded = false;
+        }
 
         foreach ($watchers as $watcher) {
             switch ($watcher->type) {
@@ -300,8 +320,6 @@ class NativeDriver extends Driver {
                     // @codeCoverageIgnoreEnd
             }
         }
-
-        $this->now = $now;
     }
 
     /**

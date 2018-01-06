@@ -10,21 +10,34 @@ use function Amp\Promise\rethrow;
 class EvDriver extends Driver {
     /** @var \EvSignal[]|null */
     private static $activeSignals;
+
     /** @var \EvLoop */
     private $handle;
+
     /** @var \EvWatcher[] */
     private $events = [];
+
     /** @var callable */
     private $ioCallback;
+
     /** @var callable */
     private $timerCallback;
+
     /** @var callable */
     private $signalCallback;
+
     /** @var \EvSignal[] */
     private $signals = [];
 
+    /** @var int Internal timestamp for now. */
+    private $now;
+
+    /** @var bool */
+    private $nowUpdateNeeded = true;
+
     public function __construct() {
         $this->handle = new \EvLoop;
+        $this->now = (int) (\microtime(true) * self::MILLISEC_PER_SEC);
 
         if (self::$activeSignals === null) {
             self::$activeSignals = &$this->signals;
@@ -175,6 +188,18 @@ class EvDriver extends Driver {
     /**
      * {@inheritdoc}
      */
+    public function now(): int {
+        if ($this->nowUpdateNeeded) {
+            $this->now = (int) (\microtime(true) * self::MILLISEC_PER_SEC);
+            $this->nowUpdateNeeded = false;
+        }
+
+        return $this->now;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getHandle(): \EvLoop {
         return $this->handle;
     }
@@ -183,6 +208,7 @@ class EvDriver extends Driver {
      * {@inheritdoc}
      */
     protected function dispatch(bool $blocking) {
+        $this->nowUpdateNeeded = true;
         $this->handle->run($blocking ? \Ev::RUN_ONCE : \Ev::RUN_ONCE | \Ev::RUN_NOWAIT);
     }
 

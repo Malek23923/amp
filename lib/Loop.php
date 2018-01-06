@@ -46,6 +46,10 @@ final class Loop {
                     // do nothing
                 }
 
+                public function now(): int {
+                    return (int) (\microtime(true) * self::MILLISEC_PER_SEC);
+                }
+
                 public function getHandle() {
                     return null;
                 }
@@ -294,6 +298,15 @@ final class Loop {
      */
     public static function unreference(string $watcherId) {
         self::$driver->unreference($watcherId);
+    }
+
+    /**
+     * Returns the current loop time in milliseconds. This time is cached and updated once per loop tick.
+     *
+     * @return int
+     */
+    public static function now(): int {
+        return self::$driver->now();
     }
 
     /**
